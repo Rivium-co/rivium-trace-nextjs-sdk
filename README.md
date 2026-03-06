@@ -5,6 +5,8 @@
 
 Comprehensive error tracking, crash detection, breadcrumbs, logging, and performance monitoring SDK for Next.js applications.
 
+**[RiviumTrace Landing Page](https://rivium.co/cloud/rivium-trace)** | **[Documentation](https://rivium.co/cloud/rivium-trace/docs/sdks-nextjs)** | **[Issues](https://github.com/Rivium-co/rivium-trace-nextjs-sdk/issues)**
+
 ## Features
 
 - **Error Tracking** - Automatic capture of uncaught errors, promise rejections, and React errors
@@ -899,6 +901,7 @@ MIT
 
 ## Support
 
-- Documentation: https://docs.rivium.co
+- Landing Page: https://rivium.co/cloud/rivium-trace
+- Documentation: https://rivium.co/cloud/rivium-trace/docs/sdks-nextjs
 - Issues: https://github.com/Rivium-co/rivium-trace-nextjs-sdk/issues
 - Email: support@rivium.co

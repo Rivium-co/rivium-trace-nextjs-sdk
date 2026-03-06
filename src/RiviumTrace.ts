@@ -23,6 +23,9 @@ export class RiviumTrace {
   private static instance: RiviumTrace | null = null;
   private config: NormalizedConfig;
   private userId?: string;
+  private sessionId: string;
+  private extras: Record<string, any> = {};
+  private tags: Record<string, string> = {};
   private isInitialized = false;
   private webVitalsTracker: WebVitalsTracker | null = null;
   private performanceClient: PerformanceClient | null = null;
@@ -31,6 +34,23 @@ export class RiviumTrace {
 
   private constructor(config: RiviumTraceConfig) {
     this.config = this.normalizeConfig(config);
+    this.sessionId = this.generateSessionId();
+    this.tags = { ...(config.tags || {}) };
+  }
+
+  /**
+   * Generate a random session ID (16 hex bytes, matching Flutter SDK)
+   */
+  private generateSessionId(): string {
+    const bytes = new Uint8Array(16);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(bytes);
+    } else {
+      for (let i = 0; i < 16; i++) {
+        bytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**
@@ -156,6 +176,7 @@ export class RiviumTrace {
     }
 
     const extra: Record<string, any> = {
+      ...this.extras,
       filename,
       lineno,
       colno,
@@ -179,6 +200,7 @@ export class RiviumTrace {
     const stackTrace = reason instanceof Error ? reason.stack : undefined;
 
     const extra: Record<string, any> = {
+      ...this.extras,
       error_type: 'unhandled_rejection',
       url: isBrowser() ? window.location.href : undefined,
     };
@@ -219,12 +241,13 @@ export class RiviumTrace {
     error: Error | string,
     message?: string,
     extra?: Record<string, any>,
-    level: 'fatal' | 'error' | 'warning' = 'error'
+    level: 'fatal' | 'error' | 'warning' = 'error',
+    callback?: (success: boolean) => void
   ): void {
     const errorMessage = message || (error instanceof Error ? error.message : String(error));
     const stackTrace = error instanceof Error ? error.stack : undefined;
 
-    const extraData = { ...extra };
+    const extraData = { ...this.extras, ...extra };
 
     // Add navigation context if in browser
     if (isBrowser()) {
@@ -232,7 +255,7 @@ export class RiviumTrace {
       Object.assign(extraData, navContext);
     }
 
-    this.captureError(errorMessage, stackTrace, extraData, level);
+    this.captureError(errorMessage, stackTrace, extraData, level, callback);
   }
 
   /**
@@ -241,12 +264,19 @@ export class RiviumTrace {
   async captureMessage(
     message: string,
     level: MessageLevel | 'info' | 'warning' | 'error' | 'debug' = 'info',
-    extra?: Record<string, any>
+    extra?: Record<string, any>,
+    callback?: (success: boolean) => void
   ): Promise<void> {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {
+      callback?.(false);
+      return;
+    }
 
     // Sample rate check
-    if (Math.random() > this.config.sampleRate) return;
+    if (Math.random() > this.config.sampleRate) {
+      callback?.(false);
+      return;
+    }
 
     const messageData: RiviumTraceMessage = {
       message,
@@ -256,12 +286,13 @@ export class RiviumTrace {
       release: this.config.release,
       timestamp: new Date().toISOString(),
       user_id: this.userId,
-      extra,
-      tags: this.config.tags,
+      session_id: this.sessionId,
+      extra: { ...this.extras, ...extra },
+      tags: this.tags,
       breadcrumbs: BreadcrumbService.toJSON(),
     };
 
-    await this.sendMessage(messageData);
+    await this.sendMessage(messageData, callback);
   }
 
   /**
@@ -271,15 +302,23 @@ export class RiviumTrace {
     message: string,
     stackTrace?: string,
     extra?: Record<string, any>,
-    level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'error'
+    level: 'fatal' | 'error' | 'warning' | 'info' | 'debug' = 'error',
+    callback?: (success: boolean) => void
   ): void {
-    if (!this.config.enabled) return;
+    if (!this.config.enabled) {
+      callback?.(false);
+      return;
+    }
 
     // Sample rate check
-    if (Math.random() > this.config.sampleRate) return;
+    if (Math.random() > this.config.sampleRate) {
+      callback?.(false);
+      return;
+    }
 
     // Ignore errors check
     if (this.shouldIgnoreError(message, stackTrace)) {
+      callback?.(false);
       return;
     }
 
@@ -289,6 +328,7 @@ export class RiviumTrace {
       if (this.config.debug) {
         console.log('[RiviumTrace] Error rate limited:', message);
       }
+      callback?.(false);
       return;
     }
 
@@ -308,8 +348,9 @@ export class RiviumTrace {
       release_version: this.config.release,
       timestamp: new Date().toISOString(),
       user_id: this.userId,
+      session_id: this.sessionId,
       extra: cleanExtra,
-      tags: this.config.tags,
+      tags: this.tags,
       level,
       url,
     };
@@ -325,12 +366,13 @@ export class RiviumTrace {
         if (this.config.debug) {
           console.log('[RiviumTrace] Error filtered by beforeSend:', message);
         }
+        callback?.(false);
         return;
       }
       // Use modified error data
-      this.sendError(result);
+      this.sendError(result, callback);
     } else {
-      this.sendError(errorData);
+      this.sendError(errorData, callback);
     }
   }
 
@@ -364,7 +406,7 @@ export class RiviumTrace {
   /**
    * Send error to API
    */
-  private async sendError(error: RiviumTraceError): Promise<void> {
+  private async sendError(error: RiviumTraceError, callback?: (success: boolean) => void): Promise<void> {
     try {
       const url = `${RIVIUMTRACE_API_URL}/api/errors`;
 
@@ -379,6 +421,8 @@ export class RiviumTrace {
         signal: AbortSignal.timeout(this.config.timeout * 1000),
       });
 
+      const success = response.ok || response.status === 409;
+
       if (this.config.debug) {
         if (response.ok) {
           console.log('[RiviumTrace] Error sent successfully:', error.message);
@@ -388,15 +432,18 @@ export class RiviumTrace {
           console.error('[RiviumTrace] Failed to send error:', response.status, await response.text());
         }
       }
+
+      callback?.(success);
     } catch (err) {
       console.error('[RiviumTrace] Error sending error:', err);
+      callback?.(false);
     }
   }
 
   /**
    * Send message to API
    */
-  private async sendMessage(message: RiviumTraceMessage): Promise<void> {
+  private async sendMessage(message: RiviumTraceMessage, callback?: (success: boolean) => void): Promise<void> {
     try {
       const url = `${RIVIUMTRACE_API_URL}/api/messages`;
 
@@ -418,8 +465,11 @@ export class RiviumTrace {
           console.error('[RiviumTrace] Failed to send message:', response.status);
         }
       }
+
+      callback?.(response.ok);
     } catch (err) {
       console.error('[RiviumTrace] Error sending message:', err);
+      callback?.(false);
     }
   }
 
@@ -437,7 +487,10 @@ export class RiviumTrace {
       environment: this.config.environment,
       release_version: this.config.release,
       timestamp: crashReport.detectedTime,
-      extra: crashReport,
+      user_id: this.userId,
+      session_id: this.sessionId,
+      extra: { ...this.extras, ...crashReport },
+      tags: this.tags,
       level: 'fatal',
     };
 
@@ -456,6 +509,87 @@ export class RiviumTrace {
    */
   getUserId(): string | undefined {
     return this.userId;
+  }
+
+  /**
+   * Get session ID (auto-generated per SDK init, matching Flutter SDK)
+   */
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
+  // ==================== EXTRAS (Global Context) ====================
+
+  /**
+   * Set a single extra context value (persists across all captures)
+   */
+  setExtra(key: string, value: any): void {
+    this.extras[key] = value;
+  }
+
+  /**
+   * Set multiple extra context values
+   */
+  setExtras(extras: Record<string, any>): void {
+    Object.assign(this.extras, extras);
+  }
+
+  /**
+   * Get a single extra context value
+   */
+  getExtra(key: string): any {
+    return this.extras[key];
+  }
+
+  /**
+   * Get all extra context values
+   */
+  getExtras(): Record<string, any> {
+    return { ...this.extras };
+  }
+
+  /**
+   * Clear all extra context values
+   */
+  clearExtras(): void {
+    this.extras = {};
+  }
+
+  // ==================== TAGS (Post-Init) ====================
+
+  /**
+   * Set a single tag (persists across all captures)
+   */
+  setTag(key: string, value: string): void {
+    this.tags[key] = value;
+  }
+
+  /**
+   * Set multiple tags
+   */
+  setTags(tags: Record<string, string>): void {
+    Object.assign(this.tags, tags);
+  }
+
+  /**
+   * Get a single tag value
+   */
+  getTag(key: string): string | undefined {
+    return this.tags[key];
+  }
+
+  /**
+   * Get all tags
+   */
+  getTags(): Record<string, string> {
+    return { ...this.tags };
+  }
+
+  /**
+   * Clear all tags
+   */
+  clearTags(): void {
+    this.tags = {};
   }
 
   /**

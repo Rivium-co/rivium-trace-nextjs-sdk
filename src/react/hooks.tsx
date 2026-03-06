@@ -63,24 +63,35 @@ export function useBreadcrumbs() {
 }
 
 /**
- * Hook to capture errors
+ * Hook to capture errors and manage context
  */
 export function useRiviumTrace() {
   const captureException = useCallback(
-    (error: Error | string, message?: string, extra?: Record<string, any>) => {
+    (
+      error: Error | string,
+      message?: string,
+      extra?: Record<string, any>,
+      level?: 'fatal' | 'error' | 'warning',
+      callback?: (success: boolean) => void
+    ) => {
       const sdk = RiviumTrace.getInstance();
       if (sdk) {
-        sdk.captureException(error, message, extra);
+        sdk.captureException(error, message, extra, level, callback);
       }
     },
     []
   );
 
   const captureMessage = useCallback(
-    (message: string, level?: 'debug' | 'info' | 'warning' | 'error', extra?: Record<string, any>) => {
+    (
+      message: string,
+      level?: 'debug' | 'info' | 'warning' | 'error',
+      extra?: Record<string, any>,
+      callback?: (success: boolean) => void
+    ) => {
       const sdk = RiviumTrace.getInstance();
       if (sdk) {
-        sdk.captureMessage(message, level as any, extra);
+        sdk.captureMessage(message, level as any, extra, callback);
       }
     },
     []
@@ -93,9 +104,41 @@ export function useRiviumTrace() {
     }
   }, []);
 
+  const setExtra = useCallback((key: string, value: any) => {
+    const sdk = RiviumTrace.getInstance();
+    if (sdk) {
+      sdk.setExtra(key, value);
+    }
+  }, []);
+
+  const setExtras = useCallback((extras: Record<string, any>) => {
+    const sdk = RiviumTrace.getInstance();
+    if (sdk) {
+      sdk.setExtras(extras);
+    }
+  }, []);
+
+  const setTag = useCallback((key: string, value: string) => {
+    const sdk = RiviumTrace.getInstance();
+    if (sdk) {
+      sdk.setTag(key, value);
+    }
+  }, []);
+
+  const setTags = useCallback((tags: Record<string, string>) => {
+    const sdk = RiviumTrace.getInstance();
+    if (sdk) {
+      sdk.setTags(tags);
+    }
+  }, []);
+
   return {
     captureException,
     captureMessage,
     setUserId,
+    setExtra,
+    setExtras,
+    setTag,
+    setTags,
   };
 }

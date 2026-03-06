@@ -232,6 +232,38 @@ export class PerformanceClient {
   }
 
   /**
+   * Send a single performance span immediately (matching Flutter SDK's single span endpoint)
+   */
+  async sendSingleSpan(span: PerformanceSpan): Promise<void> {
+    try {
+      const url = `${RIVIUMTRACE_API_URL}/api/performance/spans`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': this.config.apiKey,
+          'User-Agent': getUserAgent(),
+        },
+        body: JSON.stringify(span),
+        keepalive: true,
+      });
+
+      if (this.config.debug) {
+        if (response.ok) {
+          console.log(`[RiviumTrace] Sent single performance span: ${span.operation}`);
+        } else {
+          console.error('[RiviumTrace] Failed to send span:', response.status);
+        }
+      }
+    } catch (error) {
+      if (this.config.debug) {
+        console.error('[RiviumTrace] Error sending span:', error);
+      }
+    }
+  }
+
+  /**
    * Flush buffered spans to the API
    */
   async flush(): Promise<void> {

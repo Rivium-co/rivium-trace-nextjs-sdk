@@ -7,15 +7,18 @@ Comprehensive error tracking, crash detection, breadcrumbs, logging, and perform
 
 ## Features
 
-- 🚨 **Error Tracking** - Automatic capture of uncaught errors, promise rejections, and React errors
-- 💥 **Crash Detection** - Browser tab crash and unresponsiveness detection
-- 🍞 **Breadcrumbs** - Track user actions and events for error context
-- 🗺️ **Source Maps** - Automatic source map support for readable stack traces
-- 🎯 **Next.js Optimized** - Built specifically for Next.js App Router and Pages Router
-- ⚛️ **React Integration** - Error boundaries, hooks, and components
-- 🌐 **Universal** - Works in browser and Node.js (API routes, server components)
-- 📊 **Rich Context** - Navigation tracking, user sessions, custom metadata
-- 🎛️ **Configurable** - Flexible configuration with sampling, filtering, and hooks
+- **Error Tracking** - Automatic capture of uncaught errors, promise rejections, and React errors
+- **Crash Detection** - Browser tab crash and unresponsiveness detection
+- **Breadcrumbs** - Track user actions and events for error context
+- **Performance Monitoring** - HTTP request tracking, custom operation timing, and batched span reporting
+- **Web Vitals** - Core Web Vitals tracking (LCP, FID, CLS, INP, TTFB, FCP)
+- **Logging** - Structured logging with batching, exponential backoff retries, and level-based filtering
+- **Source Maps** - Automatic source map support for readable stack traces
+- **Next.js Optimized** - Built specifically for Next.js App Router and Pages Router
+- **React Integration** - Error boundaries, hooks, and components
+- **Universal** - Works in browser and Node.js (API routes, server components)
+- **Rich Context** - Navigation tracking, user sessions, global extras, tags, and custom metadata
+- **Configurable** - Flexible configuration with sampling, filtering, and hooks
 
 ## Installation
 
@@ -174,7 +177,7 @@ RiviumTrace.init({
   // Sampling
   sampleRate: 1.0, // 0.0 to 1.0 (100%)
 
-  // Tags
+  // Tags (initial tags, can be modified post-init)
   tags: {
     team: 'frontend',
     region: 'us-east',
@@ -217,14 +220,17 @@ The SDK automatically captures:
 ```typescript
 import { RiviumTrace } from '@rivium-trace/nextjs-sdk';
 
-// Capture exception
+// Capture exception with callback
 try {
   throw new Error('Something broke');
 } catch (error) {
-  RiviumTrace.getInstance()?.captureException(error, 'Custom context', {
-    userId: '123',
-    customData: 'value',
-  });
+  RiviumTrace.getInstance()?.captureException(
+    error,
+    'Custom context',
+    { userId: '123', customData: 'value' },
+    'error',
+    (success) => console.log('Sent:', success)
+  );
 }
 
 // Capture message/log
@@ -241,10 +247,12 @@ RiviumTrace.getInstance()?.captureMessage(
 import { useRiviumTrace } from '@rivium-trace/nextjs-sdk/react';
 
 function Component() {
-  const { captureException, captureMessage, setUserId } = useRiviumTrace();
+  const { captureException, captureMessage, setUserId, setExtra, setTag } = useRiviumTrace();
 
   useEffect(() => {
     setUserId(user.id);
+    setTag('team', 'checkout');
+    setExtra('plan', user.plan);
   }, [user.id]);
 
   const handleError = (error: Error) => {
@@ -257,6 +265,208 @@ function Component() {
   return <PaymentForm onError={handleError} />;
 }
 ```
+
+## Context & Tags
+
+### Global Extra Context
+
+Set persistent context that is automatically included with all errors and messages:
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Set individual extra
+sdk?.setExtra('organizationId', 'org-123');
+sdk?.setExtra('feature', 'checkout-v2');
+
+// Set multiple extras at once
+sdk?.setExtras({
+  organizationId: 'org-123',
+  feature: 'checkout-v2',
+  experiment: 'new-flow',
+});
+
+// Read extras
+const orgId = sdk?.getExtra('organizationId');
+const allExtras = sdk?.getExtras();
+
+// Clear all extras
+sdk?.clearExtras();
+```
+
+### Tags
+
+Tags are key-value string pairs attached to all events. Can be set at init and modified at runtime:
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Set individual tag
+sdk?.setTag('team', 'payments');
+sdk?.setTag('region', 'us-east');
+
+// Set multiple tags at once
+sdk?.setTags({ team: 'payments', version: '2.1' });
+
+// Read tags
+const team = sdk?.getTag('team');
+const allTags = sdk?.getTags();
+
+// Clear all tags
+sdk?.clearTags();
+```
+
+### Session ID
+
+A unique session ID is automatically generated when the SDK initializes (16 random hex bytes). It is included with all errors and messages for session grouping:
+
+```typescript
+const sessionId = RiviumTrace.getInstance()?.getSessionId();
+```
+
+## Performance Monitoring
+
+### Enable Performance Tracking
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Enable automatic HTTP request tracking (intercepts fetch)
+sdk?.enablePerformanceTracking({
+  batchSize: 10,       // Send spans in batches of 10
+  flushInterval: 5000, // Flush every 5 seconds
+});
+```
+
+### Track Custom Operations
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Track an async operation
+const result = await sdk?.trackOperation(
+  'fetchUserProfile',
+  async () => {
+    const res = await fetch('/api/users/me');
+    return res.json();
+  },
+  { operationType: 'http', tags: { endpoint: 'profile' } }
+);
+```
+
+### Manual Span Reporting
+
+```typescript
+import { createHttpSpan, generateTraceId, generateSpanId } from '@rivium-trace/nextjs-sdk';
+
+const span = createHttpSpan({
+  method: 'POST',
+  url: 'https://api.example.com/orders',
+  statusCode: 201,
+  durationMs: 245,
+  startTime: new Date(),
+});
+
+RiviumTrace.getInstance()?.reportPerformanceSpan(span);
+```
+
+### Performance Fetch Wrapper
+
+Create a fetch function with built-in performance tracking:
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+const performanceFetch = sdk?.createPerformanceFetch();
+
+// Use like normal fetch - spans are reported automatically
+const response = await performanceFetch('/api/data');
+```
+
+### Flush Performance Data
+
+```typescript
+// Flush pending spans and web vitals before page unload
+await RiviumTrace.getInstance()?.flushPerformance();
+```
+
+## Web Vitals
+
+Track Core Web Vitals using Google's official `web-vitals` library:
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Enable Web Vitals tracking
+sdk?.enableWebVitals({
+  reportAllChanges: false, // Only report final values (default)
+  batchInterval: 5000,     // Report every 5 seconds
+});
+```
+
+**Tracked metrics:**
+
+| Metric | Description |
+|--------|-------------|
+| **LCP** | Largest Contentful Paint |
+| **FID** | First Input Delay |
+| **CLS** | Cumulative Layout Shift |
+| **INP** | Interaction to Next Paint |
+| **TTFB** | Time to First Byte |
+| **FCP** | First Contentful Paint |
+
+Web Vitals data automatically includes device type (mobile/tablet/desktop), connection type, page URL, and route information.
+
+## Logging
+
+### Enable Logging
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+await sdk?.enableLogging({
+  sourceId: 'my-nextjs-app',       // Optional: group logs by source
+  sourceName: 'My Next.js App',    // Optional: human-readable name
+  batchSize: 50,                    // Logs per batch (default: 50)
+  flushIntervalMs: 30000,           // Auto-flush interval in ms (default: 30000)
+});
+```
+
+### Log Messages
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Convenience methods for each level
+await sdk?.trace('Entering function X');
+await sdk?.logDebug('Cache miss for key: user-123');
+await sdk?.info('User logged in', { userId: 'user-123' });
+await sdk?.warn('Rate limit approaching', { current: 950, limit: 1000 });
+await sdk?.logError('Failed to process payment', { orderId: 'ord-456' });
+await sdk?.fatal('Database connection lost');
+
+// Generic log with explicit level
+await sdk?.log('Custom message', 'info', { key: 'value' });
+```
+
+### Flush & Buffer Management
+
+```typescript
+const sdk = RiviumTrace.getInstance();
+
+// Check pending log count
+const pending = sdk?.pendingLogCount;
+
+// Force flush all buffered logs immediately
+await sdk?.flushLogs();
+```
+
+### Logging Features
+
+- **Batching** - Logs are buffered and sent in configurable batches (default: 50)
+- **Auto-flush** - Timer flushes logs at a configurable interval (default: 30s)
+- **Exponential backoff** - Failed sends retry with delays: 1s, 2s, 4s, 8s... up to 60s (max 10 attempts)
+- **Buffer limit** - Max 1000 logs in buffer; oldest logs dropped when exceeded
+- **Lazy timer** - Flush timer only runs when the buffer has logs
 
 ## Breadcrumbs
 
@@ -311,11 +521,11 @@ The SDK detects browser tab crashes and unresponsiveness using a localStorage-ba
 
 ### How It Works
 
-1. App starts → Crash marker created
+1. App starts -> Crash marker created
 2. Heartbeat runs every 5 seconds
-3. App closes normally → Marker removed
-4. App crashes → Marker remains
-5. Next session → Crash detected and reported
+3. App closes normally -> Marker removed
+4. App crashes -> Marker remains
+5. Next session -> Crash detected and reported
 
 ### Features
 
@@ -464,6 +674,9 @@ RiviumTrace.getInstance()?.setUserId('user-123');
 
 // Get user ID
 const userId = RiviumTrace.getInstance()?.getUserId();
+
+// Get auto-generated session ID
+const sessionId = RiviumTrace.getInstance()?.getSessionId();
 ```
 
 ## Source Maps
@@ -515,11 +728,17 @@ Wrap major sections of your app with error boundaries:
 
 ### 4. Add Context to Errors
 
-Include relevant context when capturing errors:
+Use global extras and per-capture extras for rich context:
 
 ```typescript
+// Global context (persists across all captures)
+RiviumTrace.getInstance()?.setExtras({
+  organizationId: org.id,
+  plan: org.plan,
+});
+
+// Per-capture context
 captureException(error, 'Payment processing failed', {
-  userId: user.id,
   amount: 99.99,
   paymentMethod: 'credit_card',
   attemptCount: 3,
@@ -571,19 +790,68 @@ import type {
   RiviumTraceError,
   Breadcrumb,
 } from '@rivium-trace/nextjs-sdk';
+
+import type {
+  PerformanceSpan,
+  WebVitalsData,
+  LogEntry,
+  LogLevel,
+  LogServiceConfig,
+} from '@rivium-trace/nextjs-sdk';
 ```
 
 ## API Reference
 
 ### RiviumTrace
 
+**Initialization & Lifecycle:**
 - `init(config)` - Initialize SDK
 - `getInstance()` - Get SDK instance
-- `captureException(error, message?, extra?, level?)` - Capture error
-- `captureMessage(message, level?, extra?)` - Capture log message
+- `close()` - Cleanup SDK, flush pending data
+
+**Error Capture:**
+- `captureException(error, message?, extra?, level?, callback?)` - Capture error
+- `captureMessage(message, level?, extra?, callback?)` - Capture log message
+
+**User & Session:**
 - `setUserId(userId)` - Set user ID
 - `getUserId()` - Get user ID
-- `close()` - Cleanup SDK
+- `getSessionId()` - Get auto-generated session ID
+
+**Global Context (Extras):**
+- `setExtra(key, value)` - Set a single extra context value
+- `setExtras(extras)` - Set multiple extra context values
+- `getExtra(key)` - Get a single extra value
+- `getExtras()` - Get all extras
+- `clearExtras()` - Clear all extras
+
+**Tags:**
+- `setTag(key, value)` - Set a single tag
+- `setTags(tags)` - Set multiple tags
+- `getTag(key)` - Get a single tag value
+- `getTags()` - Get all tags
+- `clearTags()` - Clear all tags
+
+**Performance Monitoring:**
+- `enablePerformanceTracking(options?)` - Enable automatic HTTP tracking
+- `enableWebVitals(options?)` - Enable Web Vitals tracking
+- `reportPerformanceSpan(span)` - Report a single span
+- `reportPerformanceSpanBatch(spans)` - Report multiple spans
+- `trackOperation(operation, fn, options?)` - Track an async operation
+- `createPerformanceFetch()` - Create a fetch wrapper with tracking
+- `flushPerformance()` - Flush all pending performance data
+
+**Logging:**
+- `enableLogging(options?)` - Enable logging with optional config
+- `log(message, level?, metadata?)` - Log a message
+- `trace(message, metadata?)` - Log at trace level
+- `logDebug(message, metadata?)` - Log at debug level
+- `info(message, metadata?)` - Log at info level
+- `warn(message, metadata?)` - Log at warn level
+- `logError(message, metadata?)` - Log at error level
+- `fatal(message, metadata?)` - Log at fatal level
+- `flushLogs()` - Flush all pending logs
+- `pendingLogCount` - Get buffered log count
 
 ### BreadcrumbService
 
@@ -609,6 +877,17 @@ import type {
 - `disable()` - Disable crash detection
 - `didCrashLastSession()` - Check for crash
 - `getCrashReport()` - Get crash details
+
+### React Hooks
+
+- `useRiviumTrace()` - Returns `{ captureException, captureMessage, setUserId, setExtra, setExtras, setTag, setTags }`
+- `useRiviumTraceNavigation()` - Track App Router navigation
+- `useRiviumTracePagesRouter()` - Track Pages Router navigation
+- `useBreadcrumbs()` - Returns `{ addBreadcrumb, addNavigation, addHttp, addState }`
+
+### React Components
+
+- `ErrorBoundary` / `RiviumTraceErrorBoundary` - React error boundary with automatic error reporting
 
 ## Examples
 

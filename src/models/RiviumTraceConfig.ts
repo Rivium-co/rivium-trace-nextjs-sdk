@@ -111,6 +111,7 @@ export interface RiviumTraceError {
   extra?: Record<string, any>;
   tags?: Record<string, string>;
   user_id?: string;
+  session_id?: string;
   level?: 'fatal' | 'error' | 'warning' | 'info' | 'debug';
   url?: string;
 }
@@ -126,6 +127,7 @@ export interface RiviumTraceMessage {
   release?: string;
   timestamp: string;
   user_id?: string;
+  session_id?: string;
   extra?: Record<string, any>;
   tags?: Record<string, string>;
   breadcrumbs?: Breadcrumb[];

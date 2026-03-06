@@ -1,0 +1,75 @@
+{
+  "name": "@rivium-trace/nextjs-sdk",
+  "version": "0.1.0",
+  "description": "RiviumTrace SDK for Next.js - Error tracking, crash detection, breadcrumbs, logging, and performance monitoring",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "require": "./dist/react/index.js",
+      "import": "./dist/react/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "rivium-trace",
+    "error-tracking",
+    "crash-detection",
+    "nextjs",
+    "react",
+    "monitoring",
+    "logging",
+    "performance",
+    "breadcrumbs",
+    "source-maps"
+  ],
+  "author": "RiviumTrace",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Rivium-co/rivium-trace-nextjs-sdk.git"
+  },
+  "peerDependencies": {
+    "next": ">=12.0.0",
+    "react": ">=17.0.0"
+  },
+  "dependencies": {
+    "web-vitals": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "eslint": "^8.56.0",
+    "jest": "^30.2.0",
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "ts-jest": "^29.4.6",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

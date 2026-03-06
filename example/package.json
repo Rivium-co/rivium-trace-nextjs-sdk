@@ -1,0 +1,25 @@
+{
+  "name": "rivium-trace-nextjs-example",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "copy-sourcemaps": "bash scripts/copy-sourcemaps.sh",
+    "copy-sourcemaps-flat": "bash scripts/copy-sourcemaps-flat.sh"
+  },
+  "dependencies": {
+    "next": "^14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@rivium-trace/nextjs-sdk": "file:.."
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "typescript": "^5.3.3"
+  }
+}

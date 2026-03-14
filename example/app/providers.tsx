@@ -1,8 +1,13 @@
 'use client';
 
-import { useEffect, ReactNode } from 'react';
+import { useEffect, ReactNode, Suspense } from 'react';
 import { RiviumTrace } from '@rivium-trace/nextjs-sdk';
 import { useRiviumTraceNavigation, ErrorBoundary } from '@rivium-trace/nextjs-sdk/react';
+
+function NavigationTracker() {
+  useRiviumTraceNavigation();
+  return null;
+}
 
 export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -10,7 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
     RiviumTrace.init({
       apiKey: process.env.NEXT_PUBLIC_RIVIUM_TRACE_API_KEY || 'rv_live_demo',
       environment: process.env.NODE_ENV,
-      release: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+      release: process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0',
       debug: true, // Enable debug logging for demo
       captureUncaughtErrors: true,
       enableCrashDetection: true,
@@ -39,9 +44,6 @@ export function Providers({ children }: { children: ReactNode }) {
     console.log('RiviumTrace SDK initialized');
   }, []);
 
-  // Track navigation automatically
-  useRiviumTraceNavigation();
-
   return (
     <ErrorBoundary
       fallback={(error, errorInfo, resetError) => (
@@ -52,6 +54,9 @@ export function Providers({ children }: { children: ReactNode }) {
         </div>
       )}
     >
+      <Suspense fallback={null}>
+        <NavigationTracker />
+      </Suspense>
       {children}
     </ErrorBoundary>
   );

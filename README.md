@@ -34,7 +34,7 @@ pnpm add @rivium-trace/nextjs-sdk
 
 ## Quick Start
 
-### 1. Initialize the SDK
+### Rivium Cloud (Default)
 
 #### App Router (Next.js 13+)
 
@@ -57,7 +57,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  // Track navigation
   useRiviumTraceNavigation();
 
   return <>{children}</>;
@@ -80,6 +79,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 }
 ```
 
+### Self-Hosted
+
+If you're running [RiviumTrace Self-Hosted](https://github.com/Rivium-co/rivium-selfhosted), just add `apiUrl` pointing to your server:
+
+```tsx
+RiviumTrace.init({
+  apiKey: 'rv_live_your_api_key',
+  apiUrl: 'http://your-server:3001',  // Your self-hosted Trace API
+  environment: process.env.NODE_ENV,
+  release: process.env.NEXT_PUBLIC_APP_VERSION,
+});
+```
+
+Everything else works the same — error tracking, breadcrumbs, performance, logging, web vitals.
+
 #### Pages Router (Next.js 12 and earlier)
 
 Update `pages/_app.tsx`:
@@ -94,12 +108,12 @@ function MyApp({ Component, pageProps }: AppProps) {
   useEffect(() => {
     RiviumTrace.init({
       apiKey: 'rv_live_your_api_key',
+      // apiUrl: 'http://your-server:3001',  // Uncomment for self-hosted
       environment: process.env.NODE_ENV,
       release: process.env.NEXT_PUBLIC_APP_VERSION,
     });
   }, []);
 
-  // Track navigation
   useRiviumTracePagesRouter();
 
   return <Component {...pageProps} />;
@@ -155,6 +169,9 @@ function MyComponent() {
 RiviumTrace.init({
   // Required - Get from Rivium Console (format: rv_live_xxx or rv_test_xxx)
   apiKey: 'rv_live_your_api_key',
+
+  // Optional — for self-hosted only (defaults to https://trace.rivium.co)
+  apiUrl: 'http://your-server:3001',
 
   // Optional
   environment: 'production',

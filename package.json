@@ -1,6 +1,6 @@
 {
   "name": "@rivium-trace/nextjs-sdk",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "RiviumTrace SDK for Next.js - Error tracking, crash detection, breadcrumbs, logging, and performance monitoring",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

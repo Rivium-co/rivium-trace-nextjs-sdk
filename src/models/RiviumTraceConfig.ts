@@ -95,6 +95,13 @@ export interface RiviumTraceConfig {
    * List of URLs to ignore errors from
    */
   ignoreUrls?: (string | RegExp)[];
+
+  /**
+   * Custom API URL for self-hosted RiviumTrace instances
+   * @default 'https://trace.rivium.co'
+   * @example 'https://my-server.com'
+   */
+  apiUrl?: string;
 }
 
 /**
@@ -189,4 +196,5 @@ export interface NormalizedConfig extends Required<Omit<RiviumTraceConfig, 'befo
   ignoreErrors: (string | RegExp)[];
   ignoreUrls: (string | RegExp)[];
   tags: Record<string, string>;
+  apiUrl: string;
 }

@@ -10,6 +10,7 @@ interface PerformanceClientConfig {
   debug?: boolean;
   batchSize?: number;
   flushInterval?: number;
+  apiUrl?: string;
 }
 
 /**
@@ -87,7 +88,7 @@ export class PerformanceClient {
       }
 
       // Skip tracking for RiviumTrace API calls
-      if (url.includes(RIVIUMTRACE_API_URL)) {
+      if (url.includes(self.config.apiUrl ?? RIVIUMTRACE_API_URL)) {
         return self.originalFetch!.call(window, input, init);
       }
 
@@ -236,7 +237,7 @@ export class PerformanceClient {
    */
   async sendSingleSpan(span: PerformanceSpan): Promise<void> {
     try {
-      const url = `${RIVIUMTRACE_API_URL}/api/performance/spans`;
+      const url = `${this.config.apiUrl ?? RIVIUMTRACE_API_URL}/api/performance/spans`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -278,7 +279,7 @@ export class PerformanceClient {
     this.spanBuffer = [];
 
     try {
-      const url = `${RIVIUMTRACE_API_URL}/api/performance/spans/batch`;
+      const url = `${this.config.apiUrl ?? RIVIUMTRACE_API_URL}/api/performance/spans/batch`;
 
       const response = await fetch(url, {
         method: 'POST',

@@ -10,6 +10,7 @@ interface WebVitalsConfig {
   debug?: boolean;
   reportAllChanges?: boolean;
   batchInterval?: number;
+  apiUrl?: string;
 }
 
 /**
@@ -165,7 +166,7 @@ export class WebVitalsTracker {
     };
 
     try {
-      const url = `${RIVIUMTRACE_API_URL}/api/performance/web-vitals`;
+      const url = `${this.config.apiUrl ?? RIVIUMTRACE_API_URL}/api/performance/web-vitals`;
 
       const response = await fetch(url, {
         method: 'POST',

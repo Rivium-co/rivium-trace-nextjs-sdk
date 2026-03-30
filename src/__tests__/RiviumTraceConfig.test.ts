@@ -310,7 +310,7 @@ describe('RiviumTraceConfig types and enums', () => {
         maxBreadcrumbs: 20,
         sampleRate: 1.0,
         tags: {},
-
+        apiUrl: 'https://trace.rivium.co',
         enableServerSide: true,
         enableClientSide: true,
         enableCrashDetection: true,
@@ -335,7 +335,7 @@ describe('RiviumTraceConfig types and enums', () => {
         maxBreadcrumbs: 20,
         sampleRate: 1.0,
         tags: {},
-
+        apiUrl: 'https://trace.rivium.co',
         enableServerSide: true,
         enableClientSide: true,
         enableCrashDetection: true,

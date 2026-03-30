@@ -28,4 +28,5 @@ export interface LogServiceConfig {
   flushIntervalMs?: number;
   maxBufferSize?: number;
   debug?: boolean;
+  apiUrl?: string;
 }

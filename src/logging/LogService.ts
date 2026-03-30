@@ -21,6 +21,7 @@ export class LogService {
   private readonly flushIntervalMs: number;
   private readonly maxBufferSize: number;
   private readonly debug: boolean;
+  private readonly apiUrl: string;
 
   private buffer: LogEntry[] = [];
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -43,6 +44,7 @@ export class LogService {
     this.flushIntervalMs = config.flushIntervalMs ?? 30000;
     this.maxBufferSize = config.maxBufferSize ?? 1000;
     this.debug = config.debug ?? false;
+    this.apiUrl = config.apiUrl ?? RIVIUMTRACE_API_URL;
   }
 
   /**
@@ -143,7 +145,7 @@ export class LogService {
       if (entry.userId) payload.userId = entry.userId;
       if (entry.metadata) payload.metadata = entry.metadata;
 
-      const response = await fetch(`${RIVIUMTRACE_API_URL}/api/logs/ingest`, {
+      const response = await fetch(`${this.apiUrl}/api/logs/ingest`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -223,7 +225,7 @@ export class LogService {
         payload.sourceName = this.sourceName;
       }
 
-      const response = await fetch(`${RIVIUMTRACE_API_URL}/api/logs/ingest/batch`, {
+      const response = await fetch(`${this.apiUrl}/api/logs/ingest/batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

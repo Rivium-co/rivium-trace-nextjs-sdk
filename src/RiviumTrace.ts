@@ -408,7 +408,7 @@ export class RiviumTrace {
    */
   private async sendError(error: RiviumTraceError, callback?: (success: boolean) => void): Promise<void> {
     try {
-      const url = `${RIVIUMTRACE_API_URL}/api/errors`;
+      const url = `${this.config.apiUrl}/api/errors`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -445,7 +445,7 @@ export class RiviumTrace {
    */
   private async sendMessage(message: RiviumTraceMessage, callback?: (success: boolean) => void): Promise<void> {
     try {
-      const url = `${RIVIUMTRACE_API_URL}/api/messages`;
+      const url = `${this.config.apiUrl}/api/messages`;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -606,7 +606,7 @@ export class RiviumTrace {
 
     this.webVitalsTracker = WebVitalsTracker.init({
       apiKey: this.config.apiKey,
-
+      apiUrl: this.config.apiUrl,
       environment: this.config.environment,
       releaseVersion: this.config.release,
       debug: this.config.debug,
@@ -625,7 +625,7 @@ export class RiviumTrace {
   enablePerformanceTracking(options?: { batchSize?: number; flushInterval?: number }): void {
     this.performanceClient = PerformanceClient.init({
       apiKey: this.config.apiKey,
-
+      apiUrl: this.config.apiUrl,
       environment: this.config.environment,
       releaseVersion: this.config.release,
       debug: this.config.debug,
@@ -649,7 +649,7 @@ export class RiviumTrace {
     if (!this.performanceClient) {
       this.performanceClient = PerformanceClient.init({
         apiKey: this.config.apiKey,
-  
+        apiUrl: this.config.apiUrl,
         environment: this.config.environment,
         releaseVersion: this.config.release,
         debug: this.config.debug,
@@ -666,7 +666,7 @@ export class RiviumTrace {
     if (!this.performanceClient) {
       this.performanceClient = PerformanceClient.init({
         apiKey: this.config.apiKey,
-  
+        apiUrl: this.config.apiUrl,
         environment: this.config.environment,
         releaseVersion: this.config.release,
         debug: this.config.debug,
@@ -689,7 +689,7 @@ export class RiviumTrace {
     if (!this.performanceClient) {
       this.performanceClient = PerformanceClient.init({
         apiKey: this.config.apiKey,
-  
+        apiUrl: this.config.apiUrl,
         environment: this.config.environment,
         releaseVersion: this.config.release,
         debug: this.config.debug,
@@ -705,7 +705,7 @@ export class RiviumTrace {
   createPerformanceFetch(): typeof fetch {
     return createPerformanceFetch({
       apiKey: this.config.apiKey,
-
+      apiUrl: this.config.apiUrl,
       environment: this.config.environment,
       releaseVersion: this.config.release,
       debug: this.config.debug,
@@ -749,6 +749,7 @@ export class RiviumTrace {
 
       this.logService = new LogService({
         apiKey: this.config.apiKey,
+        apiUrl: this.config.apiUrl,
         sourceId: options?.sourceId,
         sourceName: options?.sourceName,
         platform: getPlatformString(),
@@ -756,7 +757,6 @@ export class RiviumTrace {
         release: this.config.release,
         batchSize: options?.batchSize,
         flushIntervalMs: options?.flushIntervalMs,
-  
         debug: this.config.debug,
       });
 
@@ -883,6 +883,7 @@ export class RiviumTrace {
       beforeSend: config.beforeSend,
       ignoreErrors: config.ignoreErrors || [],
       ignoreUrls: config.ignoreUrls || [],
+      apiUrl: config.apiUrl || RIVIUMTRACE_API_URL,
     };
   }
 }
